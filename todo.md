@@ -1,150 +1,149 @@
-# GitHub + 원격 에이전트 자동화 설정 TODO
+# 원격 에이전트 자동화 설정 TODO (Google Drive 방식)
 
 목표: 매일 05:30 KST에 Anthropic 클라우드에서 AI 뉴스 봇이 자동 실행되어 카카오톡으로 전송.
 
 ---
 
-## 전체 흐름 개요
+## 전체 흐름
 
 ```
 [Anthropic 클라우드 cron 트리거]
   → 매일 20:30 UTC (= 05:30 KST)
   → 원격 에이전트 실행
-  → GitHub에서 코드 clone
-  → 트리거 프롬프트의 시크릿으로 .env / tokens.json 생성
+  → GitHub에서 코드 clone (시크릿 없음)
+  → Google Drive MCP로 secrets.json / tokens.json / seen.json 읽기
+  → 로컬 .env 및 data/*.json 생성
   → python -m src.main 실행
+  → 실행 후 갱신된 tokens.json / seen.json 을 Drive에 업로드
   → 카카오톡 "나에게 보내기" 전송 완료
 ```
 
-시크릿(API 키, 토큰)은 GitHub이 아닌 **Anthropic 서버의 트리거 프롬프트**에 암호화 저장됩니다.
+시크릿과 상태 파일은 모두 **개인 Google Drive `ainews/` 폴더**에 보관.
+트리거 프롬프트 자체에는 시크릿이 들어가지 않음.
 
 ---
 
-## STEP 1: .gitignore 최종 확인
+## 완료된 항목
 
-- [ ] `.env` 가 .gitignore에 포함됐는지 확인
-- [ ] `data/tokens.json` 이 .gitignore에 포함됐는지 확인
-- [ ] `data/seen.json` 이 .gitignore에 포함됐는지 확인
-
-```bash
-cat .gitignore
-```
-
----
-
-## STEP 2: GitHub 저장소 생성
-
-- [ ] GitHub에서 새 private 저장소 생성
-  - 이름 예시: `ainews-bot`
-  - **Private** 권장 (시크릿 실수 push 방지)
-  - README 없이 빈 저장소로 생성
+- [x] `.gitignore`에 `.env`, `data/tokens.json`, `data/seen.json` 포함
+- [x] GitHub 저장소 생성 (`pocachip2016/ainews-bot`)
+- [x] `git init` 및 로컬 초기 커밋 (`2cef524 Initial commit`)
+- [x] Google Drive `ainews/` 폴더 생성 (ID: `1o2r1jmGPer1nEZZyaumLsa2Xz5Loq-iV`)
+- [x] Drive에 3개 파일 업로드
+  - `secrets.json` — `GOOGLE_API_KEY`, `KAKAO_REST_KEY`
+  - `tokens.json`  — 카카오 access/refresh token
+  - `seen.json`    — 중복 방지 URL 해시
 
 ---
 
-## STEP 3: 로컬 git 초기화 및 push
+## STEP 1: GitHub push
+
+아직 원격에 push 되지 않은 상태.
 
 ```bash
 cd ~/Work/AiNews
-
-# git 초기화
-git init
-
-# 스테이징 (.env, tokens.json 등 gitignore 항목은 자동 제외)
-git add -A
-git status   # ← 여기서 .env / tokens.json 이 포함 안 됐는지 반드시 확인!
-
-# 첫 커밋
-git commit -m "Initial commit: AI news bot"
-
-# GitHub 원격 연결 (YOUR_USERNAME, YOUR_REPO 를 실제 값으로 교체)
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git branch -M main
 git push -u origin main
 ```
 
----
-
-## STEP 4: 원격 트리거 프롬프트 준비
-
-원격 에이전트는 매 실행 시 빈 환경에서 시작하므로, 트리거 프롬프트가 아래 내용을 수행해야 합니다.
-
-### 트리거 프롬프트 구조 (Claude Code `/schedule` 또는 RemoteTrigger API)
-
-```
-다음 단계를 순서대로 실행하세요.
-
-1. 아래 내용으로 .env 파일을 생성합니다:
-   GOOGLE_API_KEY=<실제_구글_API_키>
-   KAKAO_REST_KEY=<실제_카카오_REST_키>
-
-2. 아래 내용으로 data/tokens.json 파일을 생성합니다 (디렉토리가 없으면 생성):
-   {
-     "access_token": "",
-     "refresh_token": "<실제_리프레시_토큰>",
-     "expires_at": 0
-   }
-
-3. Python 가상환경을 만들고 의존성을 설치합니다:
-   python3 -m venv .venv
-   .venv/bin/pip install -r requirements.txt
-
-4. 봇을 실행합니다:
-   .venv/bin/python -m src.main
-
-5. 실행 결과를 출력합니다.
-```
-
-### 현재 시크릿 값 (트리거 등록 시 아래 값으로 채워넣기)
-
-| 항목 | 값 |
-|---|---|
-| GOOGLE_API_KEY | `.env` 파일의 GOOGLE_API_KEY 값 |
-| KAKAO_REST_KEY | `dcc8cf3fd8b8279990f449e7091fb8f3` |
-| kakao refresh_token | `data/tokens.json` 의 refresh_token 값 |
-
-> ⚠️ refresh_token 유효기간: **60일**. 만료 전에 트리거 프롬프트를 업데이트해야 합니다.
+> 첫 push 시 GitHub 인증 필요 (PAT 또는 `gh auth login`).
 
 ---
 
-## STEP 5: 원격 트리거 등록
+## STEP 2: 원격 트리거 등록
 
-Claude Code 세션에서 실행:
+Claude Code 세션에서:
 
 ```
 /schedule
 ```
 
-또는 Claude Code 에게 요청:
-> "매일 05:30 KST (= 20:30 UTC)에 GitHub 저장소 YOUR_USERNAME/YOUR_REPO 를 clone해서 AI 뉴스 봇을 실행하는 원격 트리거를 등록해줘"
+또는 Claude에게:
+> "아래 트리거 프롬프트를 매일 20:30 UTC(= 05:30 KST)에 실행되는 원격 트리거로 등록해줘"
 
-등록 후 확인: https://claude.ai/code/scheduled
+### 트리거 프롬프트 (그대로 복사)
+
+```
+당신은 AI 뉴스 봇 파이프라인을 실행하는 원격 에이전트입니다.
+다음 단계를 순서대로 수행하고, 중간 실패 시 즉시 중단하고 오류를 보고하세요.
+
+== 1. 코드 clone ==
+shell:
+  git clone https://github.com/pocachip2016/ainews-bot.git
+  cd ainews-bot
+  mkdir -p data
+
+== 2. Google Drive 에서 시크릿 · 상태 파일 로드 ==
+Google Drive `ainews` 폴더 (folder id: 1o2r1jmGPer1nEZZyaumLsa2Xz5Loq-iV) 에서
+다음 3개 파일의 '가장 최근 버전'을 가져옵니다.
+
+각 파일마다:
+  1) mcp__claude_ai_Google_Drive__search_files 호출
+     query: "title = '<FILE>' and '1o2r1jmGPer1nEZZyaumLsa2Xz5Loq-iV' in parents and trashed = false"
+     pageSize: 10
+  2) 반환된 files 중 modifiedTime 이 가장 늦은 항목 선택
+  3) mcp__claude_ai_Google_Drive__read_file_content 로 내용 읽기
+
+파일별 저장 위치:
+  - secrets.json → 내용은 {"GOOGLE_API_KEY":"...","KAKAO_REST_KEY":"..."} JSON.
+    파싱하여 로컬 .env 파일에 다음 형식으로 저장:
+      KAKAO_REST_KEY=<값>
+      GOOGLE_API_KEY=<값>
+  - tokens.json  → 로컬 data/tokens.json 에 원본 그대로 저장 (chmod 600)
+  - seen.json    → 로컬 data/seen.json 에 원본 그대로 저장
+
+== 3. Python 환경 준비 ==
+shell:
+  python3 -m venv .venv
+  .venv/bin/pip install --quiet -r requirements.txt
+
+== 4. 봇 실행 ==
+shell:
+  .venv/bin/python -m src.main
+
+stdout / stderr 를 모두 캡처해 보고하세요.
+실패 시 traceback 포함.
+
+== 5. 갱신된 상태 파일 Drive 에 업로드 ==
+실행 완료 후 로컬 data/tokens.json 과 data/seen.json 은 새 값으로 갱신되어 있습니다.
+각 파일을 base64 인코딩하고 mcp__claude_ai_Google_Drive__create_file 로 업로드:
+  - parentId: "1o2r1jmGPer1nEZZyaumLsa2Xz5Loq-iV"
+  - mimeType: "application/json"
+  - disableConversionToGoogleType: true
+  - title: "tokens.json"  또는  "seen.json"
+  - content: base64 (파일 바이트를 base64로 변환)
+
+(※ MCP 가 update/delete 를 지원하지 않아 동일 이름의 파일이 새로 생성됩니다.
+  다음 실행 시 modifiedTime 최신 기준으로 읽으므로 정상 동작.
+  월 1회 수동으로 오래된 중복을 Drive 에서 정리하면 깔끔합니다.)
+
+== 6. 완료 보고 ==
+한 줄 요약: 수집 N건 / top X normal Y fyi Z / 메시지 M개 전송 / 성공 여부.
+```
 
 ---
 
-## STEP 6: 동작 검증
+## STEP 3: 수동 테스트
 
-- [ ] 트리거 등록 후 "지금 실행" 버튼으로 1회 수동 테스트
-- [ ] 카카오톡 "나와의 채팅"에서 메시지 수신 확인
-- [ ] https://claude.ai/code/scheduled 에서 실행 로그 확인
+트리거 등록 후:
+- [ ] 트리거 상세 페이지에서 **"지금 실행"** 클릭
+- [ ] 실행 로그에서 6단계 모두 성공 확인
+- [ ] 카카오톡 "나와의 채팅"에 메시지 수신 확인
+- [ ] Drive `ainews/` 폴더에 새 `tokens.json`, `seen.json` 버전이 추가되었는지 확인
 
----
-
-## STEP 7: refresh_token 만료 관리
-
-- refresh_token 유효기간: **60일**
-- 만료 약 1주일 전에 아래 과정으로 갱신:
-  1. 로컬에서 `python -m src.main` 1회 실행 → tokens.json 갱신됨
-  2. `data/tokens.json`의 새 refresh_token 을 트리거 프롬프트에 업데이트
-  3. https://claude.ai/code/scheduled 에서 트리거 수정
+등록 후 관리: <https://claude.ai/code/scheduled>
 
 ---
 
-## 완료 체크리스트
+## STEP 4: 장기 운영
 
-- [ ] STEP 1: .gitignore 확인
-- [ ] STEP 2: GitHub private 저장소 생성
-- [ ] STEP 3: git init → push
-- [ ] STEP 4: 트리거 프롬프트 시크릿 값 채우기
-- [ ] STEP 5: 원격 트리거 등록
-- [ ] STEP 6: 수동 테스트 → 카카오톡 수신 확인
-- [ ] STEP 7: refresh_token 60일 캘린더 알림 설정
+### refresh_token 갱신
+- 카카오 refresh_token 유효기간: **60일**
+- 봇은 자동으로 갱신된 refresh_token 을 tokens.json 에 기록하고 Drive 에 다시 올립니다.
+- **매일 1회라도 실행되면 자동 갱신되므로 수동 개입 불필요.**
+- 60일간 한 번도 실행 실패 없이 돌면 영구 유지.
+
+### Drive 파일 정리 (월 1회 권장)
+- drive.google.com → `ainews/` 폴더 → `tokens.json` / `seen.json` 중복 파일 중 최신 1개만 남기고 삭제
+
+### 시크릿 교체 시
+- Drive `ainews/secrets.json` 파일만 새 값으로 업데이트하면 다음 실행부터 자동 반영.
