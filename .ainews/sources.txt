@@ -1,0 +1,22 @@
+# 포맷: 이름|카테고리|URL
+# 최대 12개 — 피드당 최신 5건만 수집
+
+# === 국내 ===
+AI타임스|국내|https://www.aitimes.com/rss/allArticle.xml
+IT조선|국내|https://it.chosun.com/rss/it_news.xml
+전자신문|국내|https://rss.etnews.com/Section902.xml
+
+# === 해외 테크 매체 ===
+TechCrunch AI|해외테크|https://techcrunch.com/category/artificial-intelligence/feed/
+VentureBeat AI|해외테크|https://venturebeat.com/category/ai/feed/
+The Verge AI|해외테크|https://www.theverge.com/ai-artificial-intelligence/rss/index.xml
+MIT Technology Review|해외테크|https://www.technologyreview.com/feed/
+
+# === AI 회사 공식 블로그 ===
+Google AI Blog|기업블로그|https://blog.google/technology/ai/rss/
+Anthropic News|기업블로그|https://www.anthropic.com/news/rss
+Hugging Face Blog|기업블로그|https://huggingface.co/blog/feed.xml
+
+# === 커뮤니티·연구 ===
+Hacker News AI|커뮤니티|https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT&count=10
+arXiv cs.AI|연구|http://export.arxiv.org/rss/cs.AI

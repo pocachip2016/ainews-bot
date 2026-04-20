@@ -1,0 +1,45 @@
+# RSS/Atom 피드 목록 (최대 12개 권장, 피드당 최신 5건만 사용)
+- name: OpenAI Blog
+  url: https://openai.com/news/rss.xml
+  category: 기업·제품
+  region: global
+- name: Anthropic News
+  url: https://www.anthropic.com/news/rss.xml
+  category: 기업·제품
+  region: global
+- name: Google DeepMind Blog
+  url: https://deepmind.google/blog/rss.xml
+  category: 기업·연구
+  region: global
+- name: Hugging Face Blog
+  url: https://huggingface.co/blog/feed.xml
+  category: 오픈소스
+  region: global
+- name: TechCrunch AI
+  url: https://techcrunch.com/category/artificial-intelligence/feed/
+  category: 미디어
+  region: global
+- name: VentureBeat AI
+  url: https://venturebeat.com/category/ai/feed/
+  category: 미디어
+  region: global
+- name: The Verge AI
+  url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+  category: 미디어
+  region: global
+- name: Hacker News (AI keyword)
+  url: https://hnrss.org/newest?q=AI+OR+LLM
+  category: 커뮤니티
+  region: global
+- name: arXiv cs.AI
+  url: http://export.arxiv.org/rss/cs.AI
+  category: 연구
+  region: global
+- name: AI타임스
+  url: https://www.aitimes.com/rss/allArticle.xml
+  category: 국내
+  region: kr
+- name: ZDNet Korea AI
+  url: https://feeds.feedburner.com/zdkorea
+  category: 국내
+  region: kr

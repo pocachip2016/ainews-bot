@@ -1,0 +1,10 @@
+.env
+.ainews/tokens.json
+.ainews/seen.json
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/tokens.json
+data/seen.json
+data/articles.json
