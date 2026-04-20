@@ -21,7 +21,7 @@ MODEL = "gemini-2.5-flash"
 MAX_PER_BUCKET = 5
 BATCH_SIZE = 20
 INTER_BATCH_DELAY = 7.0
-MAX_RETRIES = 4
+MAX_RETRIES = 3
 RETRY_BASE = 120.0
 SYSTEM_PROMPT = """너는 전문 AI 기술 분석가이자 뉴스레터 편집자야. 다음 4가지 카테고리에 대해 지난 24시간 동안의 최신 동향을 뉴스레터 형식으로 정리해줘.
 1.주요 LLM 동향: Claude, Gemini, GPT 등 주요 모델의 업데이트, 성능 지표(벤치마크), 신규 기능 소식
