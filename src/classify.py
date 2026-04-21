@@ -1,7 +1,7 @@
 """수집된 기사를 AI 관련 여부로 필터링하고 중요도별로 분류·요약.
 
-Gemini 2.5 Flash 무료 쿼터: 10 RPM / 250K TPM / 500 RPD
-배치당 20건, 배치 간 7초 대기 → 60건 기준 ~21초 소요.
+Gemini 2.5 Flash-Lite 무료 쿼터: 15 RPM / 1000 RPD
+배치당 30건, 배치 간 7초 대기 → 60건 기준 ~14초 소요.
 429(ResourceExhausted) 시 지수 백오프 재시도.
 """
 
@@ -18,9 +18,9 @@ from google import genai
 from google.genai import types
 from google.genai.errors import ServerError, ClientError
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-2.5-flash-lite"
 MAX_PER_BUCKET = 5
-BATCH_SIZE = 20
+BATCH_SIZE = 30
 INTER_BATCH_DELAY = 7.0
 MAX_RETRIES = 3
 RETRY_BASE = 120.0
