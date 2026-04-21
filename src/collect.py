@@ -17,16 +17,21 @@ SOURCES_PATH = ROOT / "config" / "sources.yaml"
 SEEN_PATH = ROOT / "data" / "seen.json"
 MAX_PER_FEED = 5
 WINDOW_HOURS = 24
+SEEN_RETENTION_DAYS = 30
 
 
 def _hash_url(url: str) -> str:
     return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
 
 
-def _load_seen() -> set[str]:
+def _load_seen() -> dict[str, str]:
     if not SEEN_PATH.exists():
-        return set()
-    return set(json.loads(SEEN_PATH.read_text(encoding="utf-8")))
+        return {}
+    data = json.loads(SEEN_PATH.read_text(encoding="utf-8"))
+    if isinstance(data, list):
+        today = datetime.now(timezone.utc).date().isoformat()
+        return {h: today for h in data}
+    return data
 
 
 def _entry_published(entry: Any) -> datetime | None:
@@ -86,10 +91,15 @@ def collect_all() -> list[dict[str, Any]]:
 def mark_seen(articles: list[dict[str, Any]]) -> None:
     SEEN_PATH.parent.mkdir(parents=True, exist_ok=True)
     seen = _load_seen()
+    today = datetime.now(timezone.utc).date().isoformat()
     for a in articles:
         if a.get("url"):
-            seen.add(_hash_url(a["url"]))
-    SEEN_PATH.write_text(json.dumps(sorted(seen), ensure_ascii=False), encoding="utf-8")
+            seen[_hash_url(a["url"])] = today
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=SEEN_RETENTION_DAYS)).date().isoformat()
+    seen = {h: d for h, d in seen.items() if d >= cutoff}
+    SEEN_PATH.write_text(
+        json.dumps(seen, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

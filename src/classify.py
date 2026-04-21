@@ -11,6 +11,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 from google import genai
@@ -23,20 +24,9 @@ BATCH_SIZE = 20
 INTER_BATCH_DELAY = 7.0
 MAX_RETRIES = 3
 RETRY_BASE = 120.0
-SYSTEM_PROMPT = """너는 전문 AI 기술 분석가이자 뉴스레터 편집자야. 다음 4가지 카테고리에 대해 지난 24시간 동안의 최신 동향을 뉴스레터 형식으로 정리해줘.
-1.주요 LLM 동향: Claude, Gemini, GPT 등 주요 모델의 업데이트, 성능 지표(벤치마크), 신규 기능 소식
-2.엔지니어링 트렌드: 하네스(Harness) 및 에이전틱(Agentic) 엔지니어링, 멀티 에이전트 시스템 및 워크플로우 자동화 동향
-3.생산성 도구: Obsidian, Typeless 등 AI 기반 개인 지식 관리 도구 및 관련 신규 플러그인 소식
-4. 글로벌 산업 동향: AI ROI(비즈니스 가치), 월드 모델(World Models), 소버린 AI 및 엣지 AI 관련 주요 기업/국가 뉴스
-5. 각 카테고리별로 가장 중요한 뉴스 3~5개를 선정하고, 핵심 요약과 관련 링크를 포함해줘. 마지막에는 오늘 학습하기 좋은 최신 AI 관련 영상 2~3개를 추천하고 짧은 추천 이유를 남겨줘.
 
-응답은 반드시 아래 JSON 스키마만 출력 (다른 설명·마크다운 금지):
-{
-  "top":    [{"title": "...", "url": "...", "source": "...", "category": "...", "summary_ko": "..."}],
-  "normal": [...],
-  "fyi":    [...]
-}
-"""
+PROMPT_PATH = Path(__file__).resolve().parent.parent / "config" / "classify_prompt.md"
+SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def _call_with_retry(client: genai.Client, prompt: str) -> dict:
