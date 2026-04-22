@@ -62,15 +62,25 @@ def collect_all() -> list[dict[str, Any]]:
             print(f"[collect] {src['name']} 파싱 실패: {e}", file=sys.stderr)
             continue
 
+        http_status = getattr(feed, "status", None)
+        total = len(feed.entries)
+        if http_status and http_status >= 400:
+            print(f"[collect] {src['name']} HTTP {http_status} — 건너뜀", file=sys.stderr)
+            continue
+
         picked = 0
+        skipped_seen = 0
+        skipped_old = 0
         for entry in feed.entries:
             if picked >= MAX_PER_FEED:
                 break
             url = entry.get("link", "")
             if not url or _hash_url(url) in seen:
+                skipped_seen += 1
                 continue
             published = _entry_published(entry)
             if published and published < cutoff:
+                skipped_old += 1
                 continue
             articles.append(
                 {
@@ -84,6 +94,10 @@ def collect_all() -> list[dict[str, Any]]:
                 }
             )
             picked += 1
+        print(
+            f"[collect] {src['name']}: 전체={total} 신규={picked} 기수집={skipped_seen} 오래됨={skipped_old}",
+            file=sys.stderr,
+        )
 
     return articles
 
