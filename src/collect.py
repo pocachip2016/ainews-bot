@@ -1,26 +1,35 @@
-"""RSS 피드를 파싱해 최근 24시간 기사를 수집하고 중복 제거."""
+"""Gemini Google Search 그라운딩으로 최근 24시간 AI 뉴스 수집.
+
+CCR 환경에서 외부 RSS 피드 IP가 차단되므로, Gemini API를 통해
+구글이 대신 검색한 결과의 grounding_chunks에서 URL/제목을 추출한다.
+"""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
-import feedparser
-import yaml
+from google import genai
+from google.genai import types
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCES_PATH = ROOT / "config" / "sources.yaml"
 SEEN_PATH = ROOT / "data" / "seen.json"
-MAX_PER_FEED = 5
-WINDOW_HOURS = 24
 SEEN_RETENTION_DAYS = 30
-FEEDPARSER_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; AiNewsBot/1.0; +https://github.com/pocachip2016/ainews-bot)"
-}
+GROUNDING_MODEL = "gemini-2.0-flash"
+MAX_ARTICLES = 30
+
+SEARCH_QUERIES = [
+    ("OpenAI Anthropic Claude Google AI Gemini latest news today", "기업·제품", "global"),
+    ("artificial intelligence LLM news today 2026", "미디어", "global"),
+    ("AI startup investment generative AI research announcement", "연구", "global"),
+    ("인공지능 AI 뉴스 최신 오늘", "국내", "kr"),
+]
 
 
 def _hash_url(url: str) -> str:
@@ -37,72 +46,61 @@ def _load_seen() -> dict[str, str]:
     return data
 
 
-def _entry_published(entry: Any) -> datetime | None:
-    for key in ("published_parsed", "updated_parsed"):
-        t = getattr(entry, key, None) or entry.get(key)
-        if t:
-            return datetime(*t[:6], tzinfo=timezone.utc)
-    return None
-
-
-def _strip_html(text: str) -> str:
-    import re
-
-    text = re.sub(r"<[^>]+>", " ", text or "")
-    return re.sub(r"\s+", " ", text).strip()
+def _domain(url: str) -> str:
+    try:
+        return urlparse(url).netloc.replace("www.", "")
+    except Exception:
+        return ""
 
 
 def collect_all() -> list[dict[str, Any]]:
-    sources = yaml.safe_load(SOURCES_PATH.read_text(encoding="utf-8"))
+    client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
     seen = _load_seen()
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=WINDOW_HOURS)
+    results: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
 
-    articles: list[dict[str, Any]] = []
-    for src in sources:
+    for query, category, region in SEARCH_QUERIES:
         try:
-            feed = feedparser.parse(src["url"], request_headers=FEEDPARSER_HEADERS)
-        except Exception as e:
-            print(f"[collect] {src['name']} 파싱 실패: {e}", file=sys.stderr)
-            continue
-
-        http_status = getattr(feed, "status", None)
-        total = len(feed.entries)
-        if http_status and http_status >= 400:
-            print(f"[collect] {src['name']} HTTP {http_status} — 건너뜀", file=sys.stderr)
-            continue
-
-        picked = 0
-        skipped_seen = 0
-        skipped_old = 0
-        for entry in feed.entries:
-            if picked >= MAX_PER_FEED:
-                break
-            url = entry.get("link", "")
-            if not url or _hash_url(url) in seen:
-                skipped_seen += 1
-                continue
-            published = _entry_published(entry)
-            if published and published < cutoff:
-                skipped_old += 1
-                continue
-            articles.append(
-                {
-                    "title": entry.get("title", "").strip(),
-                    "url": url,
-                    "source": src["name"],
-                    "category": src.get("category", ""),
-                    "region": src.get("region", ""),
-                    "published": published.isoformat() if published else "",
-                    "summary_raw": _strip_html(entry.get("summary", ""))[:400],
-                }
+            response = client.models.generate_content(
+                model=GROUNDING_MODEL,
+                contents=f"Search and list recent news articles about: {query}",
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.1,
+                ),
             )
-            picked += 1
-        print(
-            f"[collect] {src['name']}: 전체={total} 신규={picked} 기수집={skipped_seen} 오래됨={skipped_old}",
-            file=sys.stderr,
-        )
+            candidate = response.candidates[0]
+            meta = getattr(candidate, "grounding_metadata", None)
+            chunks = getattr(meta, "grounding_chunks", []) if meta else []
 
-    return articles
+            picked = 0
+            for chunk in chunks:
+                web = getattr(chunk, "web", None)
+                if not web:
+                    continue
+                url = getattr(web, "uri", "") or ""
+                title = getattr(web, "title", "") or ""
+                if not url or url in seen_urls or _hash_url(url) in seen:
+                    continue
+                seen_urls.add(url)
+                results.append({
+                    "title": title,
+                    "url": url,
+                    "source": _domain(url),
+                    "category": category,
+                    "region": region,
+                    "published": "",
+                    "summary_raw": "",
+                })
+                picked += 1
+
+            print(f"[collect] '{query[:45]}': {picked}건", file=sys.stderr)
+
+        except Exception as e:
+            print(f"[collect] 검색 실패 ({query[:45]}): {e}", file=sys.stderr)
+
+    print(f"[collect] 총 {len(results)}건 신규 수집", file=sys.stderr)
+    return results[:MAX_ARTICLES]
 
 
 def mark_seen(articles: list[dict[str, Any]]) -> None:
