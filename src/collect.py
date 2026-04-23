@@ -18,6 +18,9 @@ SEEN_PATH = ROOT / "data" / "seen.json"
 MAX_PER_FEED = 5
 WINDOW_HOURS = 24
 SEEN_RETENTION_DAYS = 30
+FEEDPARSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; AiNewsBot/1.0; +https://github.com/pocachip2016/ainews-bot)"
+}
 
 
 def _hash_url(url: str) -> str:
@@ -57,7 +60,7 @@ def collect_all() -> list[dict[str, Any]]:
     articles: list[dict[str, Any]] = []
     for src in sources:
         try:
-            feed = feedparser.parse(src["url"])
+            feed = feedparser.parse(src["url"], request_headers=FEEDPARSER_HEADERS)
         except Exception as e:
             print(f"[collect] {src['name']} 파싱 실패: {e}", file=sys.stderr)
             continue

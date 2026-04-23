@@ -1,45 +1,52 @@
 # RSS/Atom 피드 목록 (최대 12개 권장, 피드당 최신 5건만 사용)
-- name: OpenAI Blog
-  url: https://openai.com/news/rss.xml
+# Google News RSS: 클라우드 IP 차단 없이 안정적으로 동작
+
+- name: Google News - AI 종합 (영문)
+  url: https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en
+  category: 미디어
+  region: global
+
+- name: Google News - OpenAI/Anthropic/Claude
+  url: https://news.google.com/rss/search?q=OpenAI+OR+Anthropic+OR+Claude+AI&hl=en-US&gl=US&ceid=US:en
   category: 기업·제품
   region: global
-- name: Anthropic News
-  url: https://www.anthropic.com/news/rss.xml
+
+- name: Google News - Gemini/Grok/LLM
+  url: https://news.google.com/rss/search?q=Gemini+AI+OR+Grok+OR+large+language+model&hl=en-US&gl=US&ceid=US:en
   category: 기업·제품
   region: global
-- name: Google DeepMind Blog
-  url: https://deepmind.google/blog/rss.xml
+
+- name: Google News - AI 연구·오픈소스
+  url: https://news.google.com/rss/search?q=machine+learning+research+OR+open+source+AI&hl=en-US&gl=US&ceid=US:en
   category: 기업·연구
   region: global
-- name: Hugging Face Blog
-  url: https://huggingface.co/blog/feed.xml
-  category: 오픈소스
-  region: global
-- name: TechCrunch AI
-  url: https://techcrunch.com/category/artificial-intelligence/feed/
+
+- name: Google News - AI 비즈니스
+  url: https://news.google.com/rss/search?q=AI+startup+OR+AI+investment+OR+generative+AI&hl=en-US&gl=US&ceid=US:en
   category: 미디어
   region: global
-- name: VentureBeat AI
-  url: https://venturebeat.com/category/ai/feed/
-  category: 미디어
-  region: global
-- name: The Verge AI
-  url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
-  category: 미디어
-  region: global
-- name: Hacker News (AI keyword)
-  url: https://hnrss.org/newest?q=AI+OR+LLM
+
+- name: Google News - 인공지능 (한국어)
+  url: https://news.google.com/rss/search?q=%EC%9D%B8%EA%B3%B5%EC%A7%80%EB%8A%A5&hl=ko&gl=KR&ceid=KR:ko
+  category: 국내
+  region: kr
+
+- name: Google News - AI 기업·산업 (한국어)
+  url: https://news.google.com/rss/search?q=AI+%EA%B8%B0%EC%97%85+OR+%EB%94%A5%EB%9F%AC%EB%8B%9D+OR+%EC%83%9D%EC%84%B1+AI&hl=ko&gl=KR&ceid=KR:ko
+  category: 국내
+  region: kr
+
+- name: Hacker News
+  url: https://news.ycombinator.com/rss
   category: 커뮤니티
   region: global
+
 - name: arXiv cs.AI
-  url: http://export.arxiv.org/rss/cs.AI
+  url: https://export.arxiv.org/rss/cs.AI
   category: 연구
   region: global
-- name: AI타임스
-  url: https://www.aitimes.com/rss/allArticle.xml
-  category: 국내
-  region: kr
-- name: ZDNet Korea AI
-  url: https://feeds.feedburner.com/zdkorea
-  category: 국내
-  region: kr
+
+- name: arXiv cs.LG
+  url: https://export.arxiv.org/rss/cs.LG
+  category: 연구
+  region: global
