@@ -1,7 +1,7 @@
 """Gemini Google Search 그라운딩으로 최근 24시간 AI 뉴스 수집.
 
-CCR 환경에서 외부 RSS 피드 IP가 차단되므로, Gemini API를 통해
-구글이 대신 검색한 결과의 grounding_chunks에서 URL/제목을 추출한다.
+gemini-2.5-flash-lite: Google Search grounding 무료 티어 지원.
+--dry-run 시 API 미호출 (샘플 데이터 반환).
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from google.genai import types
 ROOT = Path(__file__).resolve().parent.parent
 SEEN_PATH = ROOT / "data" / "seen.json"
 SEEN_RETENTION_DAYS = 30
-GROUNDING_MODEL = "gemini-2.0-flash"
+GROUNDING_MODEL = "gemini-2.5-flash-lite"
 MAX_ARTICLES = 30
 
 SEARCH_QUERIES = [
@@ -29,6 +29,27 @@ SEARCH_QUERIES = [
     ("artificial intelligence LLM news today 2026", "미디어", "global"),
     ("AI startup investment generative AI research announcement", "연구", "global"),
     ("인공지능 AI 뉴스 최신 오늘", "국내", "kr"),
+]
+
+_SAMPLE_ARTICLES: list[dict[str, Any]] = [
+    {
+        "title": "[DRY-RUN] OpenAI releases GPT-5",
+        "url": "https://example.com/gpt5",
+        "source": "example.com",
+        "category": "기업·제품",
+        "region": "global",
+        "published": "",
+        "summary_raw": "Sample article for dry-run testing.",
+    },
+    {
+        "title": "[DRY-RUN] 국내 AI 규제 법안 통과",
+        "url": "https://example.com/ai-law",
+        "source": "example.com",
+        "category": "국내",
+        "region": "kr",
+        "published": "",
+        "summary_raw": "테스트용 샘플 기사입니다.",
+    },
 ]
 
 
@@ -53,12 +74,17 @@ def _domain(url: str) -> str:
         return ""
 
 
-def collect_all() -> list[dict[str, Any]]:
+def collect_all(dry_run: bool = False) -> list[dict[str, Any]]:
+    if dry_run:
+        print("[collect] DRY-RUN: API 미호출, 샘플 데이터 반환", file=sys.stderr)
+        return _SAMPLE_ARTICLES
+
     client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
     seen = _load_seen()
     results: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
 
+    failed = 0
     for query, category, region in SEARCH_QUERIES:
         try:
             response = client.models.generate_content(
@@ -97,7 +123,11 @@ def collect_all() -> list[dict[str, Any]]:
             print(f"[collect] '{query[:45]}': {picked}건", file=sys.stderr)
 
         except Exception as e:
+            failed += 1
             print(f"[collect] 검색 실패 ({query[:45]}): {e}", file=sys.stderr)
+
+    if failed == len(SEARCH_QUERIES):
+        raise RuntimeError(f"모든 Gemini 검색 쿼리 실패 ({failed}/{len(SEARCH_QUERIES)})")
 
     print(f"[collect] 총 {len(results)}건 신규 수집", file=sys.stderr)
     return results[:MAX_ARTICLES]

@@ -4,11 +4,15 @@
 AiNews — Gemini grounding 기반 AI 뉴스 수집/발행 봇.
 
 ## Stack
-(기술 스택 한 줄로 추후 보강)
+- 수집: Gemini grounding (`gemini-2.5-flash-lite` + `google_search` tool) — `GOOGLE_API_KEY` (AI Studio)
+- 분류·요약: Gemini (`gemini-2.5-flash-lite`) — 동일 키
+- 발송: 카카오톡 나에게 보내기 (`KAKAO_REST_KEY` + `data/tokens.json`)
+- 스케줄: 매일 05:30 KST (cron 또는 Claude Code remote schedule)
 
 ## Active Work
 - Branch: main
-- 최근: feedparser RSS 경로를 Gemini grounding 으로 교체 완료
+- 최근: 파이프라인 오류 알림 추가, grounding 모델을 `gemini-2.5-flash-lite`로 교체
+- 주의: `GOOGLE_API_KEY`를 TabGet과 공유 중 → 쿼터 충돌 위험
 
 ## Where to look
 - 상세 TODO: `@TODO.md`
