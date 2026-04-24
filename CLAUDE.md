@@ -17,3 +17,6 @@ AiNews — Gemini grounding 기반 AI 뉴스 수집/발행 봇.
 ## Where to look
 - 상세 TODO: `@TODO.md`
 - 아키텍처/설계: `docs/` (있는 경우)
+
+## Verification
+- 단위 테스트 부재. 검증은 `bash .claude/verify.sh [step-id]` 로 일원화 — `smoke` 은 `python -m src.main --dry-run`, 모듈별(`collect`/`classify`/`format`/`kakao`) 임포트·동작 체크 지원.
