@@ -11,8 +11,7 @@ AiNews — Gemini grounding 기반 AI 뉴스 수집/발행 봇.
 
 ## Active Work
 - Branch: main
-- 최근: 파이프라인 오류 알림 추가, grounding 모델을 `gemini-2.5-flash-lite`로 교체
-- 주의: `GOOGLE_API_KEY`를 TabGet과 공유 중 → 쿼터 충돌 위험
+- 최근: 파이프라인 오류 알림 추가, grounding 모델을 `gemini-2.5-flash-lite`로 교체, AiNews 전용 `GOOGLE_API_KEY` 분리
 
 ## Where to look
 - 상세 TODO: `@TODO.md`
